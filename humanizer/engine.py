@@ -94,27 +94,28 @@ class HumanizerEngine:
         return chunks
 
     def _get_generation_params(self, tone: str) -> dict:
-        # tweak sampling params based on the selected tone
+        # tuned for maximum humanness — higher temp + repeat penalty
+        # pushes the LLM to be less predictable (= higher perplexity = harder to detect)
         base_params = {
-            "temperature": 0.8,
-            "top_p": 0.9,
-            "top_k": 40,
-            "repeat_penalty": 1.18,
+            "temperature": 0.85,
+            "top_p": 0.88,
+            "top_k": 55,
+            "repeat_penalty": 1.25,
         }
 
         if tone == "academic":
             base_params.update({
-                "temperature": 0.7,
+                "temperature": 0.78,
                 "top_p": 0.85,
                 "top_k": 50,
-                "repeat_penalty": 1.15,
+                "repeat_penalty": 1.22,
             })
         elif tone == "casual":
             base_params.update({
-                "temperature": 0.9,
+                "temperature": 0.95,
                 "top_p": 0.92,
-                "top_k": 60,
-                "repeat_penalty": 1.2,
+                "top_k": 65,
+                "repeat_penalty": 1.28,
             })
         # "normal" uses base params
 
