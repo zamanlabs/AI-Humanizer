@@ -1,16 +1,10 @@
-"""
-Post-processor for humanized text.
-
-Applies rule-based transformations AFTER the LLM rewrite to further reduce
-AI-detectable patterns. These are linguistic heuristics based on known
-AI detection signals.
-"""
+# postprocessor.py — cleanup pass that runs after the LLM rewrite
 
 import re
 import random
 
 
-# Words/phrases that AI detectors flag as common AI patterns
+# phrases to swap out for more natural-sounding alternatives
 AI_TELLTALE_PHRASES = {
     "it is important to note that": [
         "notably,", "worth mentioning:", "one thing to keep in mind —",
@@ -94,7 +88,7 @@ AI_TELLTALE_PHRASES = {
     "in light of": ["considering", "given", "because of",],
 }
 
-# Sentence starters AI overuses
+# overused openers
 AI_OVERUSED_STARTERS = [
     r"^This is ",
     r"^It is ",
@@ -104,13 +98,6 @@ AI_OVERUSED_STARTERS = [
 
 
 def replace_ai_phrases(text: str, intensity: float = 0.7) -> str:
-    """
-    Replace known AI-telltale phrases with more natural alternatives.
-
-    Args:
-        text: The text to process
-        intensity: 0.0-1.0 probability of replacing each matched phrase
-    """
     result = text
     for ai_phrase, replacements in AI_TELLTALE_PHRASES.items():
         if random.random() < intensity:
@@ -129,11 +116,7 @@ def replace_ai_phrases(text: str, intensity: float = 0.7) -> str:
 
 
 def vary_sentence_lengths(text: str) -> str:
-    """
-    If sentences are too uniform in length (a major AI tell),
-    try to combine or split some to create natural variation.
-    This is a light touch — the LLM should do most of the work.
-    """
+    # merge or split sentences if they're suspiciously same-length
     sentences = re.split(r'(?<=[.!?])\s+', text)
     if len(sentences) < 4:
         return text
@@ -141,11 +124,10 @@ def vary_sentence_lengths(text: str) -> str:
     lengths = [len(s.split()) for s in sentences]
     avg_len = sum(lengths) / len(lengths)
 
-    # Check if sentence lengths are too uniform (low variance)
     variance = sum((l - avg_len) ** 2 for l in lengths) / len(lengths)
 
     if variance < 10 and len(sentences) > 4:
-        # Sentences are suspiciously uniform — try to merge a pair
+        # too uniform, merge a pair
         idx = random.randint(0, len(sentences) - 2)
         # Only merge if both are short-to-medium
         if lengths[idx] < 15 and lengths[idx + 1] < 15:
@@ -159,8 +141,7 @@ def vary_sentence_lengths(text: str) -> str:
 
 
 def remove_preamble(text: str) -> str:
-    """Remove any LLM preamble or meta-commentary that slipped through."""
-    # Common preamble patterns
+    # strip "Here's the rewritten..." type junk from the top
     preamble_patterns = [
         r"^(?:Here(?:'s| is) (?:the |a |my )?rewritten (?:version|text)[\s:.\-—]*\n*)",
         r"^(?:Sure[,!]?\s*(?:here(?:'s| is))?[\s:.\-—]*\n*)",
@@ -176,7 +157,7 @@ def remove_preamble(text: str) -> str:
     for pattern in preamble_patterns:
         result = re.sub(pattern, "", result, flags=re.IGNORECASE).strip()
 
-    # Also remove trailing meta-commentary
+    # same idea but for the end of the text
     trailing_patterns = [
         r"\n*---\s*$",
         r"\n*(?:I hope this (?:helps|works|meets)[\s\S]*?)$",
@@ -191,26 +172,19 @@ def remove_preamble(text: str) -> str:
 
 
 def add_natural_imperfections(text: str, intensity: float = 0.3) -> str:
-    """
-    Add very subtle natural imperfections that humans tend to have.
-    This is extremely light-touch to avoid degrading quality.
-    """
+    # sprinkle in occasional dashes and asides (very lightly)
     sentences = re.split(r'(?<=[.!?])\s+', text)
     if len(sentences) < 3:
         return text
 
     result_sentences = []
     for i, sentence in enumerate(sentences):
-        # Occasionally use a dash for emphasis
         if random.random() < intensity * 0.15 and len(sentence.split()) > 8:
             words = sentence.split()
-            # Insert a dash-offset parenthetical
             if len(words) > 6:
                 insert_pos = random.randint(3, len(words) - 3)
-                # Only if there isn't already a dash
                 if "—" not in sentence and "-" not in sentence:
                     words[insert_pos] = "— " + words[insert_pos]
-                    # Find a reasonable end point
                     end_pos = min(insert_pos + random.randint(2, 3), len(words) - 1)
                     words[end_pos] = words[end_pos] + " —"
                     sentence = " ".join(words)
@@ -221,33 +195,17 @@ def add_natural_imperfections(text: str, intensity: float = 0.3) -> str:
 
 
 def postprocess(text: str, tone: str = "normal", intensity: float = 0.7) -> str:
-    """
-    Apply all post-processing steps to the humanized text.
-
-    Args:
-        text: LLM-rewritten text
-        tone: Writing tone (affects which transformations apply)
-        intensity: How aggressively to apply transformations (0.0-1.0)
-    """
-    # Step 1: Remove any preamble the LLM might have added
     result = remove_preamble(text)
-
-    # Step 2: Replace AI-telltale phrases
     result = replace_ai_phrases(result, intensity=intensity)
-
-    # Step 3: Vary sentence lengths if too uniform
     result = vary_sentence_lengths(result)
 
-    # Step 4: Add subtle natural imperfections (very light)
     if tone == "casual":
         result = add_natural_imperfections(result, intensity=intensity * 0.5)
     elif tone == "normal":
         result = add_natural_imperfections(result, intensity=intensity * 0.2)
-    # Academic: skip imperfections
 
-    # Final cleanup
-    result = re.sub(r' +', ' ', result)  # Remove double spaces
-    result = re.sub(r'\n{3,}', '\n\n', result)  # Max 2 newlines
+    result = re.sub(r' +', ' ', result)
+    result = re.sub(r'\n{3,}', '\n\n', result)
     result = result.strip()
 
     return result

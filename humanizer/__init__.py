@@ -1,1 +1,1 @@
-# AI Humanizer Engine
+# humanizer package

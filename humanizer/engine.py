@@ -1,8 +1,4 @@
-"""
-Core humanization engine.
-Orchestrates the Ollama client, prompt construction, and post-processing
-to transform AI-generated text into human-sounding text.
-"""
+# engine.py — main logic that ties everything together
 
 import re
 import time
@@ -13,12 +9,11 @@ from .prompts import get_system_prompt, build_rewrite_prompt
 from .postprocessor import postprocess
 
 
-# Maximum characters per chunk for the LLM (prevents timeouts on long texts)
+# keep chunks under this so we don't time out on big inputs
 MAX_CHUNK_SIZE = 2000
 
 
 class HumanizerEngine:
-    """Main engine that coordinates the humanization pipeline."""
 
     def __init__(
         self,
@@ -29,7 +24,6 @@ class HumanizerEngine:
         self.model = model
 
     def check_status(self) -> dict:
-        """Check if the system is ready."""
         available = self.client.is_available()
         models = self.client.list_models() if available else []
         model_ready = any(self.model in m for m in models)
@@ -58,15 +52,11 @@ class HumanizerEngine:
         return f"Ready — using {self.model}"
 
     def set_model(self, model: str):
-        """Switch to a different model."""
         self.model = model
         self.client.model = model
 
     def _split_into_chunks(self, text: str) -> list[str]:
-        """
-        Split text into coherent chunks for processing.
-        Splits on paragraph boundaries to maintain context.
-        """
+        # break long text into paragraph-sized pieces
         if len(text) <= MAX_CHUNK_SIZE:
             return [text]
 
@@ -104,7 +94,7 @@ class HumanizerEngine:
         return chunks
 
     def _get_generation_params(self, tone: str) -> dict:
-        """Get LLM generation parameters tuned for each tone."""
+        # tweak sampling params based on the selected tone
         base_params = {
             "temperature": 0.8,
             "top_p": 0.9,
@@ -136,17 +126,7 @@ class HumanizerEngine:
         tone: str = "normal",
         intensity: float = 0.7,
     ) -> dict:
-        """
-        Humanize AI-generated text.
-
-        Args:
-            text: The AI-generated text to humanize
-            tone: 'academic', 'casual', or 'normal'
-            intensity: How aggressively to humanize (0.0-1.0)
-
-        Returns:
-            dict with 'result', 'original_length', 'new_length', 'time_taken'
-        """
+        # main entry point — takes text in, spits humanized text out
         start_time = time.time()
 
         # Validate
@@ -205,10 +185,7 @@ class HumanizerEngine:
         text: str,
         tone: str = "normal",
     ) -> Generator[str, None, None]:
-        """
-        Stream humanized text token by token.
-        Only works for single-chunk texts (for simplicity).
-        """
+        # streaming version — pushes tokens as they come in
         text = text.strip()
         if not text:
             yield "[Error: No text provided]"

@@ -1,7 +1,4 @@
-"""
-Ollama API Client for local LLM inference.
-Communicates with a locally running Ollama instance.
-"""
+# ollama_client.py — talks to the local Ollama server
 
 import requests
 import json
@@ -9,14 +6,12 @@ from typing import Optional
 
 
 class OllamaClient:
-    """Client for interacting with a local Ollama instance."""
 
     def __init__(self, base_url: str = "http://localhost:11434", model: str = "mistral"):
         self.base_url = base_url.rstrip("/")
         self.model = model
 
     def is_available(self) -> bool:
-        """Check if Ollama is running and accessible."""
         try:
             resp = requests.get(f"{self.base_url}/api/tags", timeout=5)
             return resp.status_code == 200
@@ -24,7 +19,6 @@ class OllamaClient:
             return False
 
     def list_models(self) -> list[str]:
-        """List all locally available models."""
         try:
             resp = requests.get(f"{self.base_url}/api/tags", timeout=10)
             resp.raise_for_status()
@@ -44,16 +38,7 @@ class OllamaClient:
         num_predict: int = 4096,
         timeout: int = 300,
     ) -> str:
-        """
-        Generate a completion using the local model.
-
-        Parameters tuned for humanization:
-        - temperature: Controls randomness (higher = more varied/human)
-        - top_p: Nucleus sampling for natural word selection
-        - top_k: Limits vocabulary to top-k tokens
-        - repeat_penalty: Penalizes repetitive patterns (AI tends to repeat)
-        - num_predict: Max tokens to generate
-        """
+        # send prompt to ollama and get the full response back
         payload = {
             "model": self.model,
             "prompt": prompt,
@@ -100,7 +85,7 @@ class OllamaClient:
         repeat_penalty: float = 1.15,
         num_predict: int = 4096,
     ):
-        """Stream generation token by token (for real-time UI feedback)."""
+        # same as generate() but yields tokens one at a time
         payload = {
             "model": self.model,
             "prompt": prompt,

@@ -1,18 +1,6 @@
-"""
-Humanization prompt templates for different writing tones.
+# prompts.py — system + user prompts for each writing tone
 
-These prompts are carefully designed to instruct the local LLM to rewrite
-AI-generated text in a way that:
-1. Preserves the original meaning and accuracy
-2. Introduces natural human writing patterns
-3. Varies sentence structure (burstiness)
-4. Uses natural vocabulary choices
-5. Avoids AI-detectable patterns (uniform sentence length, predictable transitions)
-"""
-
-# =============================================================================
-# SYSTEM PROMPTS — Define the rewriter's persona and rules
-# =============================================================================
+# --- base system prompt + tone variants ---
 
 SYSTEM_BASE = """You are a professional human rewriter. Your ONLY job is to take \
 AI-generated text and rewrite it so it reads as if a real person wrote it from scratch.
@@ -73,9 +61,7 @@ WRITING STYLE — NORMAL / BALANCED:
 - Write with confidence but include natural hedging where appropriate."""
 
 
-# =============================================================================
-# REWRITING PROMPT TEMPLATE
-# =============================================================================
+# --- user-facing rewrite prompt ---
 
 REWRITE_PROMPT = """Rewrite the following text completely in your own words. \
 Make it sound like a real human wrote it from scratch. \
@@ -92,9 +78,7 @@ TEXT TO REWRITE:
 REWRITTEN VERSION:"""
 
 
-# =============================================================================
-# CHUNKED REWRITING — for longer texts, process in coherent chunks
-# =============================================================================
+# --- continuation prompt for multi-chunk texts ---
 
 CONTINUATION_PROMPT = """Continue rewriting the following text. This is a continuation \
 of a longer piece — maintain the same tone and natural writing style. \
@@ -113,12 +97,9 @@ TEXT TO REWRITE NOW:
 REWRITTEN CONTINUATION:"""
 
 
-# =============================================================================
-# PROMPT BUILDER — assembles the right system + user prompt
-# =============================================================================
+# --- helpers ---
 
 def get_system_prompt(tone: str) -> str:
-    """Get the appropriate system prompt for the given tone."""
     tone_map = {
         "academic": SYSTEM_ACADEMIC,
         "casual": SYSTEM_CASUAL,
@@ -128,7 +109,6 @@ def get_system_prompt(tone: str) -> str:
 
 
 def build_rewrite_prompt(text: str, previous_context: str = "") -> str:
-    """Build the user-facing rewrite prompt."""
     if previous_context:
         return CONTINUATION_PROMPT.format(
             previous_context=previous_context[-500:],  # Last 500 chars for context

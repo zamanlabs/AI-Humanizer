@@ -1,7 +1,4 @@
-"""
-AI Humanizer — Flask Web Application
-A local tool for humanizing AI-generated text using Ollama models.
-"""
+# app.py — web server and API endpoints
 
 import os
 import json
@@ -10,29 +7,24 @@ from humanizer.engine import HumanizerEngine
 
 app = Flask(__name__)
 
-# Configuration
 DEFAULT_MODEL = os.environ.get("HUMANIZER_MODEL", "mistral")
 OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://localhost:11434")
 
-# Initialize engine
 engine = HumanizerEngine(model=DEFAULT_MODEL, ollama_url=OLLAMA_URL)
 
 
 @app.route("/")
 def index():
-    """Serve the main UI."""
     return render_template("index.html")
 
 
 @app.route("/api/status", methods=["GET"])
 def status():
-    """Check system status (Ollama running, model available)."""
     return jsonify(engine.check_status())
 
 
 @app.route("/api/models", methods=["GET"])
 def list_models():
-    """List available Ollama models."""
     models = engine.client.list_models()
     return jsonify({
         "models": models,
@@ -42,7 +34,6 @@ def list_models():
 
 @app.route("/api/model", methods=["POST"])
 def set_model():
-    """Switch the active model."""
     data = request.get_json()
     model = data.get("model", "").strip()
     if not model:
@@ -53,7 +44,6 @@ def set_model():
 
 @app.route("/api/humanize", methods=["POST"])
 def humanize():
-    """Humanize text (non-streaming)."""
     data = request.get_json()
 
     text = data.get("text", "").strip()
@@ -78,7 +68,6 @@ def humanize():
 
 @app.route("/api/humanize/stream", methods=["POST"])
 def humanize_stream():
-    """Humanize text with streaming response."""
     data = request.get_json()
 
     text = data.get("text", "").strip()
